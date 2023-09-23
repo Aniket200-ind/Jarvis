@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis - Voice Assistant</title>
+
+    <style>
+        :root {
+            --dark-color: #3A3335;
+            --bitter-sweet: #EB5E55;
+            --raspberry-color: #D81E5B;
+            --papaya-whip: #FDF0D5;
+            --ash-gray: #C6D8D3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--ash-gray);
+            font-family: sans-serif;
+            font-family: 'Source Code Pro', monospace;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        h1 {
+            color: var(--raspberry-color);
+            text-shadow: 3px 2px 3px var(--dark-color);
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        #container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        button {
+            padding: 1rem;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 1.2rem;
+            cursor: pointer;
+            margin: 0 1rem;
+            color: var(--papaya-whip);
+            background-color: var(--dark-color);
+            width: 10rem;
+        }
+
+        button:active {
+            color: var(--dark-color);
+            background-color: var(--papaya-whip);
+            border: 2px solid var(--raspberry-color);
+        }
+
+        #chat {
+            padding: 1rem;
+            background-color: var(--papaya-whip);
+            color: var(--raspberry-color);
+            font-size: 1rem;
+            margin: 1rem;
+            font-weight: 700;
+            border-radius: 5px;
+            min-height: 50vh;
+            overflow-y: scroll;
+            scrollbar-width: none;
+        }
+
+        #chat::-webkit-scrollbar {
+            display: none;
+        }
+
+        footer{
+            width: 100%;
+            background-color: var(--dark-color);
+            color: var(--bitter-sweet);
+            position: absolute;
+            bottom: 0;
+            height: 5vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <h1>Jarvis🤖</h1>
+        <section id="container">
+            <button id="startBtn">Start</button>
+            <button id="stopBtn">Stop</button>
+        </section>
+
+        <section id="chat">
+            <!-- Apply min-height and overflow-y property for this section -->
+        </section>
+    </main>
+
+    <footer>
+        Created with love by &copy; Aniket.
+    </footer>
+    <script>
+        const chatDisp = document.getElementById("chat");
+        const start = document.getElementById("startBtn");
+
+        const populateUsingGPT = (input) => {
+            chatDisp.innerHTML += `
+                    <br>
+                    <div><em>Loading...</em></div>
+                `;
+
+            postData("/api", { input }).then((data) => {
+                chatDisp.lastElementChild.remove();
+
+                chatDisp.innerHTML += `
+                    <br>
+                    <div style="font-weight: 600;"><u>Question:</u> ${input}</div>
+                    <div><u>Answer:</u><br><br>${data.message}</div>
+                `;
+            });
+        }
+
+        let speech = true;
+        let globalTranscript;
+
+        window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        const recognition = new SpeechRecognition();
+        recognition.interimResults = true;
+
+        recognition.addEventListener('result', e => {
+            const transcript = Array.from(e.results)
+                .map(result => result[0])
+                .map(result => result.transcript)
+                .join('')
+
+            globalTranscript = transcript;
+        })
+
+        start.addEventListener("click", () => {
+            if (speech) {
+                recognition.start();
+                recognition.addEventListener("end", () => {
+                    if (globalTranscript) {
+                        populateUsingGPT(globalTranscript);
+                    }
+                    globalTranscript = "";
+                });
+            }
+        })
+
+        async function postData(url = "", data = {}) {
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    mode: "cors",
+                    cache: "no-cache",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    redirect: "follow",
+                    referrerPolicy: "no-referrer",
+                    body: JSON.stringify(data),
+                });
+                return response.json();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+
+</html>
